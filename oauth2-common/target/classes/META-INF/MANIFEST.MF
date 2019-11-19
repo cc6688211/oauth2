@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Implementation-Title: oauth2-common
+Implementation-Version: 0.0.1-SNAPSHOT
+Built-By: cc
+Implementation-Vendor-Id: cn.cc.study
+Build-Jdk: 1.8.0_171
+Implementation-URL: https://projects.spring.io/spring-boot/#/spring-bo
+ ot-starter-parent/oauth2/oauth2-common
+Created-By: Maven Integration for Eclipse
+
