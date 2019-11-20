@@ -10,11 +10,13 @@
 
 package cn.cc.study.config.oauth2;
 
+import java.security.KeyPair;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
@@ -24,10 +26,11 @@ import org.springframework.security.oauth2.config.annotation.web.configurers.Aut
 import org.springframework.security.oauth2.provider.error.WebResponseExceptionTranslator;
 import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
 import org.springframework.security.oauth2.provider.token.TokenStore;
+import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
+import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
+import org.springframework.security.oauth2.provider.token.store.KeyStoreKeyFactory;
 
-import cn.cc.study.config.RedisTokenStore;
 import cn.cc.study.config.error.MssWebResponseExceptionTranslator;
-import cn.cc.study.service.MyUserDetailService;
 import cn.cc.study.util.DigestUtil;
 
 /**
@@ -48,15 +51,6 @@ public class AuthorizationServerConfiguration extends AuthorizationServerConfigu
     @Autowired
     private AuthenticationManager authenticationManager;
 
-    @Autowired
-    private RedisConnectionFactory redisConnectionFactory;
-
-    /**
-     * 用户认证器
-     */
-    @Autowired
-    private MyUserDetailService userDetailsService;
-
     /**
      * 
      * @方法名:tokenStore
@@ -71,7 +65,7 @@ public class AuthorizationServerConfiguration extends AuthorizationServerConfigu
      */
     @Bean
     public TokenStore tokenStore() {
-        return new RedisTokenStore(redisConnectionFactory);
+        return new JwtTokenStore(jwtTokenEnhancer());
     }
 
     /**
@@ -123,15 +117,8 @@ public class AuthorizationServerConfiguration extends AuthorizationServerConfigu
      */
     @Override
     public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
-        endpoints
-                // 指定认证管理器
-                .authenticationManager(authenticationManager)
-                // 用户账号密码认证
-                .userDetailsService(userDetailsService)
-                // refresh_token
-                .reuseRefreshTokens(false)
-                // 指定token存储位置
-                .tokenStore(tokenStore()).tokenServices(defaultTokenServices());
+        endpoints.tokenStore(tokenStore()).tokenEnhancer(jwtTokenEnhancer())
+                .authenticationManager(authenticationManager).exceptionTranslator(webResponseExceptionTranslator());
     }
 
     /**
@@ -147,6 +134,7 @@ public class AuthorizationServerConfiguration extends AuthorizationServerConfigu
         DefaultTokenServices tokenServices = new DefaultTokenServices();
         tokenServices.setTokenStore(tokenStore());
         tokenServices.setSupportRefreshToken(true);
+        tokenServices.setTokenEnhancer(jwtTokenEnhancer());
         // tokenServices.setClientDetailsService(clientDetails());
         // token有效期自定义设置，默认12小时
         tokenServices.setAccessTokenValiditySeconds(60 * 60 * 24 * 7);
@@ -155,5 +143,22 @@ public class AuthorizationServerConfiguration extends AuthorizationServerConfigu
         tokenServices.setAccessTokenValiditySeconds(60 * 60 * 24 * 7);
         // tokenServices.setRefreshTokenValiditySeconds(60 * 60 * 24 * 7);
         return tokenServices;
+    }
+
+    /**
+     * 定义jwt的生成方式
+     *
+     * @return JwtAccessTokenConverter
+     */
+    @Bean
+    public JwtAccessTokenConverter jwtTokenEnhancer() {
+        JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
+        // 非对称加密，但jwt长度过长
+        KeyPair keyPair = new KeyStoreKeyFactory(new ClassPathResource("spring-jwt.jks"), "admin123456".toCharArray())
+                .getKeyPair("spring-jwt");
+        converter.setKeyPair(keyPair);
+        // 对称加密
+        // converter.setSigningKey("admin123");
+        return converter;
     }
 }

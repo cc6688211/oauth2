@@ -10,8 +10,8 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:7001/eureka/
-security:
-  oauth2:
-    resource:
-      id: oauth2-client
-      user-info-uri: http://localhost:1202/auth/api/member#验证传入的令牌
+#security:
+#  oauth2:
+#    resource:
+#      id: oauth2-client
+#      user-info-uri: http://localhost:1202/auth/api/member#验证传入的令牌
